@@ -1,0 +1,315 @@
+@startuml
+
+title Pet Website Application Design - Three Layers Architecture
+
+package presentation {
+   +class Main{
+     +{static} main(String[])
+   }
+
+   ~class MainScreenUI {
+    -inventory: InventoryController
+    -addPetUI: AddPetUI
+    -removePetUI: RemovePetUI
+    -searchPetUI: SearchPetUI
+    -updatePetUI: UpdatePetUI
+
+    +MainScreenUI(i: InventoryController)
+    -showPets(): void
+    -showAddPet(): void
+    -showRemovePet(): void
+    -showSearchPet(): void
+  }
+
+  ~class WelcomeScreenUI {
+    +WelcomeScreenUI()
+    +displayWelcome(): void
+  }
+
+  ~class AddPetUI {
+    -inventory: InventoryController
+
+    +AddPetUI(i: InventoryController)
+
+    -promptPetInfo(): void
+    -addPet(): void
+    -checkUniqueMicrochipID(): boolean
+    -displayDuplicateMicrochipID(): void
+    -promptUserForName(): String
+    -validateEmptyName(): boolean
+    -errorIncompleteName(): void
+    -promptUserForSpecies(): String
+    -validatePetType(): boolean
+    -errorInvalidType(): void
+    -promptUserForBreed(): String
+    -validatePetBreed(): boolean
+    -errorInvalidBreed(): void
+    -promptUserForLocation(): String
+    -checkValidLocation(): boolean
+    -displayInvalidLocation(): void
+  }
+
+  ~class RemovePetUI {
+    -inventory: InventoryController
+
+    +RemovePetUI(i: InventoryController)
+    +RemovePetUI()
+
+    -promptForMicrochipID(): void
+    -checkExistingMicrochipID(): boolean
+    -displayNonexistentMicrochipID(): void
+    -promptConfirmDeletion(): void
+    -removePet(): void
+  }
+
+  ~class SearchPetUI {
+    -inventory: InventoryController
+
+    +SearchPetUI(i: InventoryController)
+
+    -promptSearchCriteria(): void
+    -buildSearchCriteria(name: String, species: PetType, breed: PetBreed, age: int, location: Location, shelter: String): PetSearchCriteria
+    -search(): void
+
+    -displaySearchResults(): void
+    -displayNoSearchResults(): void
+  }
+
+  ~class UpdatePetUI {
+    -inventory: InventoryController
+
+    +UpdatePetUI(updatedData: String, i: InventoryController)
+
+    -promptForPetData(): void
+
+    -updatePet(): void
+  }
+
+  ~class ReportUI {
+    -loader: InventoryHistoryLoader
+    -reportGenerator: FileGenerator
+
+    +ReportUI(i: InventoryController, loader: InventoryHistoryLoader, reportGenerator: FileGenerator)
+
+    -createChart(): void
+    -displayChart(): void
+    -createReport(): void
+    -exportReport(): void
+  }
+}
+
+package domain {
+  package pet {
+      +class InventoryController {
+        -pets: List<Pet>
+        -loader: Loader
+        -saver: Saver
+
+        +InventoryController(l: Loader, s: Saver): void
+
+        -loadInventory(): void
+
+        +addPet(microchipID: String, name: String, species: PetType, breed: PetBreed, age: int, location: Location, photo: Image, shelter: String): <<throws>> IllegalArgumentException: void
+        +removePet(microChipID: MicroChipID): boolean
+        +searchGuitar(searchCriteria: PetSearchCriteria): Set<Guitar>
+        -checkExistingID(id: MicroChipID): boolean
+        +toString(): String
+      }
+
+      +class Pet {
+        -microchipID: MicroChipID
+        -photo: Image
+        -info: PetSearchCriteria
+
+        +Pet(microchipID: MicroChipID, photo: Image, searchCriteria: PetSearchCriteria)
+
+        ~checkMatchingPet(searchCriteria: PetSearchCriteria): boolean
+        ~checkMatchingID(microchipID: MicroChipID): boolean
+        +toString(): String
+      }
+
+      +class MicrochipID {
+        -microchipID: String
+
+        +SicrochipID(String) <<throws>> IllegalArgumentException
+        -checkIDFormat(): boolean
+        ~checkMatchingID(microchipID: MicrochipID): boolean
+        +toString(): String
+      }
+
+      +class PetSearchCriteria {
+        -name: String
+        -species: PetType
+        -breed: PetBreed
+        -age: int
+        -location: Location
+        -shelter: String
+
+        +PetSearchCriteria(name: String, species: PetType, breed: PetBreed, age: int, location: Location, shelter: String)
+
+        ~checkMatchingPet(searchCriteria: PetSearchCriteria): boolean
+        ~checkCompleteInfo(): boolean
+        +toString(): String
+      }
+
+      +class Location{
+        -state: String
+        -city: String
+
+        +Location(state: String, city, String)
+
+        ~checkMatchingLocation(state: String, city: String): boolean
+        +toString(): String
+      }
+
+      +class InventorySnapshot {
+        -timestamp: Date
+
+        +InventorySnapshot(timestamp: Date)
+      }
+
+      +enum PetType {
+        CAT
+        DOG
+        FROG
+        HAMSTER
+        LIZARD
+        RABBIT
+        FISH
+      }
+
+      +enum PetBreed {
+        PITBULL
+        GOLDEN RETRIEVER
+        POODLE
+        DACHSHUND
+        GERMAN SHEPHERD
+        HUSKY
+        TURKISH ANGORA
+        RAGDOLL
+        TABBY
+        SIAMESE
+        PERSIAN
+        SPHINX
+        AFRICAN DWARF
+        PACMAN
+        CHINESE
+        SYRIAN
+        LEOPARD
+        BEARDED
+        CRESTED
+        LIONHEAD
+        HOLLAND LOP
+        BETTA
+        GUPPY
+        CLOWNFISH
+      }
+  }
+}
+
+package datasource {
+  +interface Loader {
+    +<i>next(): String
+    +<i>hasNext(): boolean
+  }
+
+  +interface Saver {
+    +<i>append(data: String): void
+    +<i>remove(data: String): boolean
+  }
+
+  +class LocalTextLoader {
+    -fPath: String
+
+    +LocalTextLoader(fPath: String)
+
+    +next(): String
+    +hasNext(): boolean
+  }
+
+  +class DatabaseLoader {
+    -configFilePath: String
+    -table: String
+
+    +DatabaseLoader(configFilePath: String, table: String)
+
+    +next(): String
+    +hasNext(): boolean
+  }
+
+  +class LocalTextSaver {
+    -fPath: String
+
+    +LocalTextSaver(fPath: String)
+
+    +append(data: String): void
+    +remove(data: String): void
+  }
+
+  package image{
+      +interface ImageRetriever{
+        +getImage(): byte[]
+      }
+
+      +class LocalLibraryImageRetriever{
+        +getImage():  byte[]
+      }
+  }
+}
+
+Main ..> WelcomeScreenUI
+Main ..> Saver
+Main ..> Loader
+Main ..> InventoryController
+Main ..> MainScreenUI
+Main ..> LocalTextLoader
+Main ..> LocalTextSaver
+
+MainScreenUI --> AddPetUI
+MainScreenUI --> RemovePetUI
+MainScreenUI --> SearchGuitarUI
+MainScreenUI --> UpdateGuitarUI
+MainScreenUI --> ReportUI
+MainScreenUI --> InventoryController
+MainScreenUI ..> FileGenerator
+MainScreenUI ..> LocalTextLoader
+
+AddPetUI --> InventoryController
+AddGuitarUI ..> PetType
+
+RemovePetUI --> InventoryController
+
+SearchGuitarUI --> InventoryController
+SearchGuitarUI ..> GuitarSearchCriteria
+
+UpdateGuitarUI --> InventoryController
+UpdateGuitarUI ..> Price
+UpdateGuitarUI ..> GuitarSearchCriteria
+UpdateGuitarUI ..> SerialNumber
+
+ReportUI --> Loader
+ReportUI --> FileGenerator
+
+InventoryController --> "*" Guitar
+InventoryController --> Loader
+InventoryController --> Saver
+InventoryController ..> GuitarSearchCriteria
+InventoryController ..> SerialNumber
+InventoryController ..> Price
+InventoryController ..> InventorySnapshot
+
+Guitar --> GuitarSearchCriteria
+Guitar --> SerialNumber
+Guitar --> Price
+
+GuitarSearchCriteria --> Builder
+GuitarSearchCriteria --> GuitarType
+GuitarSearchCriteria --> WoodType
+
+LocalTextLoader .u.|> Loader
+DatabaseLoader .u.|> Loader
+LocalTextSaver .u.|> Saver
+
+ReportGenerator .u.|> FileGenerator
+
+@enduml
