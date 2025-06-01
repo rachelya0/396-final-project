@@ -13,12 +13,16 @@ package presentation {
     -removePetUI: RemovePetUI
     -searchPetUI: SearchPetUI
     -updatePetUI: UpdatePetUI
+    -registerAccountUI: RegisterAccountUI
+    -loginUI: LoginUI
 
     +MainScreenUI(i: InventoryController)
     -showPets(): void
     -showAddPet(): void
     -showRemovePet(): void
     -showSearchPet(): void
+    -showRegisterAccount(): void
+    -showLogin(): void
   }
 
   ~class WelcomeScreenUI {
@@ -85,16 +89,30 @@ package presentation {
     -updatePet(): void
   }
 
-  ~class ReportUI {
-    -loader: InventoryHistoryLoader
-    -reportGenerator: FileGenerator
+  ~class RegisterAccountUI {
+    -controller: ShelterController
 
-    +ReportUI(i: InventoryController, loader: InventoryHistoryLoader, reportGenerator: FileGenerator)
+    +RegisterAccountUI(controller: ShelterController)
+    +promptRegistrationForm(): void
+    +validateFields(email: String, password: String, name: String, state: String, city: String): boolean
+    +displayRegistrationSuccess(): void
+    +displayRegistrationError(): void
+    +displayEmailAlreadyExistsPrompt(): void
+    +promptLoginInstead(): void
+  }
 
-    -createChart(): void
-    -displayChart(): void
-    -createReport(): void
-    -exportReport(): void
+  ~class LoginUI {
+    -controller: ShelterController
+
+    +LoginUI(controller: ShelterController)
+    +promptLoginForm(): void
+    +validateCredentials(email: String, password: String): boolean
+    +displayLoginSuccess(): void
+    +displayLoginError(): void
+    +login(): void
+    +logout(): void
+    +displayLogoutSuccess(): void
+    +displayLogoutError(): void
   }
 }
 
@@ -205,6 +223,43 @@ package domain {
         CLOWNFISH
       }
   }
+
+  package shelter {
+    +class Shelter {
+      -email: String
+      -password: String
+      -name: String
+      -location: Location
+
+      +Shelter(email: String, password: String, name: String, location: Location)
+      +validateEmail(): boolean
+      +validatePassword(): boolean
+      +toString(): String
+    }
+
+    +class ShelterController {
+      -shelters: List<Shelter>
+      -saver: Saver
+      +ShelterController(saver: Saver)
+
+      +registerShelter(email: String, password: String, name: String, location: Location): <<throws>> RegistrationException
+      -checkExistingEmail(email: String): boolean
+      +login(email: String, password: String): Shelter <<throws>> LoginException
+      +logout(): void
+    }
+
+    +class RegistrationException {
+      -message: String
+      +RegistrationException(message: String)
+      +getMessage(): String
+    }
+
+    +class LoginException {
+      -message: String
+      +LoginException(message: String)
+      +getMessage(): String
+    }
+  }
 }
 
 package datasource {
@@ -275,20 +330,9 @@ MainScreenUI ..> FileGenerator
 MainScreenUI ..> LocalTextLoader
 
 AddPetUI --> InventoryController
-AddGuitarUI ..> PetType
+AddPetUI ..> PetType
 
 RemovePetUI --> InventoryController
-
-SearchGuitarUI --> InventoryController
-SearchGuitarUI ..> GuitarSearchCriteria
-
-UpdateGuitarUI --> InventoryController
-UpdateGuitarUI ..> Price
-UpdateGuitarUI ..> GuitarSearchCriteria
-UpdateGuitarUI ..> SerialNumber
-
-ReportUI --> Loader
-ReportUI --> FileGenerator
 
 InventoryController --> "*" Guitar
 InventoryController --> Loader
@@ -298,17 +342,19 @@ InventoryController ..> SerialNumber
 InventoryController ..> Price
 InventoryController ..> InventorySnapshot
 
-Guitar --> GuitarSearchCriteria
-Guitar --> SerialNumber
-Guitar --> Price
+RegisterAccountUI --> ShelterController
+RegisterAccountUI --> RegistrationException
 
-GuitarSearchCriteria --> Builder
-GuitarSearchCriteria --> GuitarType
-GuitarSearchCriteria --> WoodType
+ShelterController ..> RegistrationException
 
 LocalTextLoader .u.|> Loader
 DatabaseLoader .u.|> Loader
 LocalTextSaver .u.|> Saver
+
+MainScreenUI --> LoginUI
+LoginUI --> ShelterController
+LoginUI --> LoginException
+ShelterController ..> LoginException
 
 ReportGenerator .u.|> FileGenerator
 
