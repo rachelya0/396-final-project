@@ -15,6 +15,9 @@ package presentation {
     -updatePetUI: UpdatePetUI
     -registerAccountUI: RegisterAccountUI
     -loginUI: LoginUI
+    -viewPetDetailsUI: ViewPetDetailsUI
+    -favoritesUI: FavoritesUI
+    -adoptionUI: AdoptionApplicationUI
 
     +MainScreenUI(i: InventoryController)
     -showPets(): void
@@ -23,11 +26,9 @@ package presentation {
     -showSearchPet(): void
     -showRegisterAccount(): void
     -showLogin(): void
-  }
-
-  ~class WelcomeScreenUI {
-    +WelcomeScreenUI()
-    +displayWelcome(): void
+    -showPetDetails(): void
+    -showFavorites(): void
+    -showAdoptionForm(): void
   }
 
   ~class AddPetUI {
@@ -48,9 +49,7 @@ package presentation {
     -promptUserForBreed(): String
     -validatePetBreed(): boolean
     -errorInvalidBreed(): void
-    -promptUserForLocation(): String
-    -checkValidLocation(): boolean
-    -displayInvalidLocation(): void
+    -getShelter(): void
   }
 
   ~class RemovePetUI {
@@ -68,6 +67,7 @@ package presentation {
 
   ~class SearchPetUI {
     -inventory: InventoryController
+    -account: Account
 
     +SearchPetUI(i: InventoryController)
 
@@ -75,7 +75,7 @@ package presentation {
     -buildSearchCriteria(name: String, species: PetType, breed: PetBreed, age: int, location: Location, shelter: String): PetSearchCriteria
     -search(): void
 
-    -displaySearchResults(): void
+    -displaySearchResults(account: Account): void
     -displayNoSearchResults(): void
   }
 
@@ -90,9 +90,10 @@ package presentation {
   }
 
   ~class RegisterAccountUI {
-    -controller: ShelterController
+    -controller: AccountController
+    -account: Account
 
-    +RegisterAccountUI(controller: ShelterController)
+    +RegisterAccountUI(controller: AccountController)
     +promptRegistrationForm(): void
     +validateFields(email: String, password: String, name: String, state: String, city: String): boolean
     +displayRegistrationSuccess(): void
@@ -102,9 +103,10 @@ package presentation {
   }
 
   ~class LoginUI {
-    -controller: ShelterController
+    -controller: AccountController
+    -account: Account
 
-    +LoginUI(controller: ShelterController)
+    +LoginUI(controller: AccountController)
     +promptLoginForm(): void
     +validateCredentials(email: String, password: String): boolean
     +displayLoginSuccess(): void
@@ -114,6 +116,37 @@ package presentation {
     +displayLogoutSuccess(): void
     +displayLogoutError(): void
   }
+
+  ~class ViewPetDetailsUI {
+     -inventory: InventoryController
+     -account: Account
+
+     +ViewPetDetailsUI(i: InventoryController, account: Account)
+
+     -displayPetProfile(microchipID: String): void
+     -getPetByID(microchipID: String): Pet
+     -displayEditableOptions(pet: Pet): void
+     -toggleFavorite(microchipID: String): void
+     -promptAdoptionForm(microchipID: String): void
+  }
+
+  ~class FavoritesUI {
+     -inventory: InventoryController
+
+     +FavoritesUI(i: InventoryController)
+     +displaySavedPets(): void
+  }
+
+  ~class AdoptionApplicationUI {
+    -inventory: InventoryController
+
+    +AdoptionApplicationUI(i: InventoryController)
+    +displayApplicationForm(microchipID: String): void
+    +submitApplication(microchipID: String, application: AdoptionApplication): void
+    +validateApplication(application: AdoptionApplication): boolean
+    +displaySuccess(): void
+    +displayValidationErrors(): void
+  }
 }
 
 package domain {
@@ -122,6 +155,8 @@ package domain {
         -pets: List<Pet>
         -loader: Loader
         -saver: Saver
+        -favorites: Map<User, List<MicroChipID>>
+        -applications: List<AdoptionApplication>
 
         +InventoryController(l: Loader, s: Saver): void
 
@@ -129,8 +164,11 @@ package domain {
 
         +addPet(microchipID: String, name: String, species: PetType, breed: PetBreed, age: int, location: Location, photo: Image, shelter: String): <<throws>> IllegalArgumentException: void
         +removePet(microChipID: MicroChipID): boolean
-        +searchGuitar(searchCriteria: PetSearchCriteria): Set<Guitar>
-        -checkExistingID(id: MicroChipID): boolean
+        +searchPet(searchCriteria: PetSearchCriteria): Set<Pet>
+        +getPetByID(microchipID: String): Pet
+        +toggleFavorite(user: User, microchipID: String): void
+        +getFavorites(user: User): List<Pet>
+        +submitApplication(application: AdoptionApplication): void
         +toString(): String
       }
 
@@ -149,9 +187,10 @@ package domain {
       +class MicrochipID {
         -microchipID: String
 
-        +SicrochipID(String) <<throws>> IllegalArgumentException
+        +MicrochipID(String) <<throws>> IllegalArgumentException
         -checkIDFormat(): boolean
         ~checkMatchingID(microchipID: MicrochipID): boolean
+        ~checkExistingID(microchipID: MicrochipID): boolean
         +toString(): String
       }
 
@@ -180,10 +219,15 @@ package domain {
         +toString(): String
       }
 
-      +class InventorySnapshot {
-        -timestamp: Date
+      +class AdoptionApplication {
+        -applicantEmail: String
+        -microchipID: MicroChipID
+        -householdInfo: String
+        -petExperience: String
 
-        +InventorySnapshot(timestamp: Date)
+        +AdoptionApplication(email: String, id: MicroChipID, householdInfo: String, petExperience: String)
+        +validate(): boolean
+        +toString(): String
       }
 
       +enum PetType {
@@ -224,17 +268,39 @@ package domain {
       }
   }
 
-  package shelter {
-    +class Shelter {
+  package user {
+    +interface Account {
+      +getEmail(): String
+      +validatePassword(password: String): boolean
+    }
+
+    +class User implements Account {
       -email: String
       -password: String
       -name: String
-      -location: Location
 
-      +Shelter(email: String, password: String, name: String, location: Location)
-      +validateEmail(): boolean
-      +validatePassword(): boolean
+      +User(email: String, password: String, name: String)
+      +getEmail(): String
+      +validatePassword(password: String): boolean
       +toString(): String
+    }
+
+    +class Shelter implements Account {
+      -email: String
+      -password: String
+      -name: String
+      -location: String
+
+      +Shelter(email: String, password: String, name: String, location: String)
+      +getEmail(): String
+      +validatePassword(password: String): boolean
+      +toString(): String
+    }
+
+    abstract class AccountController {
+      +register(email: String, password: String, name: String): void
+      +login(email: String, password: String): void
+      +logout(): void
     }
 
     +class ShelterController {
@@ -243,8 +309,17 @@ package domain {
       +ShelterController(saver: Saver)
 
       +registerShelter(email: String, password: String, name: String, location: Location): <<throws>> RegistrationException
-      -checkExistingEmail(email: String): boolean
-      +login(email: String, password: String): Shelter <<throws>> LoginException
+      +login(email: String, password: String): void <<throws>> LoginException
+      +logout(): void
+    }
+
+    +class UserController {
+      -users: List<User>
+      -saver: Saver
+      +UserController(saver: Saver)
+
+      +registerUser(email: String, password: String, name: String): <<throws>> RegistrationException
+      +login(email: String, password: String): void <<throws>> LoginException
       +logout(): void
     }
 
@@ -312,7 +387,6 @@ package datasource {
   }
 }
 
-Main ..> WelcomeScreenUI
 Main ..> Saver
 Main ..> Loader
 Main ..> InventoryController
@@ -340,12 +414,15 @@ InventoryController --> Saver
 InventoryController ..> GuitarSearchCriteria
 InventoryController ..> SerialNumber
 InventoryController ..> Price
-InventoryController ..> InventorySnapshot
 
 RegisterAccountUI --> ShelterController
 RegisterAccountUI --> RegistrationException
 
 ShelterController ..> RegistrationException
+UserController ..> RegistrationException
+
+AccountController <|-- UserController
+AccountController <|-- ShelterController
 
 LocalTextLoader .u.|> Loader
 DatabaseLoader .u.|> Loader
