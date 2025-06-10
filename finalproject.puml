@@ -10,31 +10,31 @@ package presentation {
    ~class MainScreenUI {
     -inventory: InventoryController
     -addPetUI: AddPetUI
-    -removePetUI: RemovePetUI
     -searchPetUI: SearchPetUI
-    -updatePetUI: UpdatePetUI
     -registerAccountUI: RegisterAccountUI
     -loginUI: LoginUI
     -viewPetDetailsUI: ViewPetDetailsUI
-    -favoritesUI: FavoritesUI
-    -adoptionUI: AdoptionApplicationUI
+    -reviewApplicationsUI: ReviewApplicationsUI
+    -chatbotUI: ChatbotUI
+    -featurePetUI: FeaturePetUI
 
     +MainScreenUI(i: InventoryController)
     -showPets(): void
     -showAddPet(): void
-    -showRemovePet(): void
     -showSearchPet(): void
     -showRegisterAccount(): void
     -showLogin(): void
     -showPetDetails(): void
-    -showFavorites(): void
-    -showAdoptionForm(): void
+    -showReviewApplications(): void
+    -showChatbot(): void
+    -showFeaturedPet(): void
   }
 
   ~class AddPetUI {
     -inventory: InventoryController
+    -account: Account
 
-    +AddPetUI(i: InventoryController)
+    +AddPetUI(i: InventoryController, account: Account)
 
     -promptPetInfo(): void
     -addPet(): void
@@ -54,8 +54,9 @@ package presentation {
 
   ~class RemovePetUI {
     -inventory: InventoryController
+    -account: Account
 
-    +RemovePetUI(i: InventoryController)
+    +RemovePetUI(i: InventoryController, account: Account)
     +RemovePetUI()
 
     -promptForMicrochipID(): void
@@ -69,7 +70,7 @@ package presentation {
     -inventory: InventoryController
     -account: Account
 
-    +SearchPetUI(i: InventoryController)
+    +SearchPetUI(i: InventoryController, account: Account)
 
     -promptSearchCriteria(): void
     -buildSearchCriteria(name: String, species: PetType, breed: PetBreed, age: int, location: Location, shelter: String): PetSearchCriteria
@@ -81,19 +82,19 @@ package presentation {
 
   ~class UpdatePetUI {
     -inventory: InventoryController
+    -account: Account
 
-    +UpdatePetUI(updatedData: String, i: InventoryController)
+    +UpdatePetUI(updatedData: String, i: InventoryController, account: Account)
 
     -promptForPetData(): void
-
-    -updatePet(): void
+    -updatePet(updatedData: String): void
   }
 
   ~class RegisterAccountUI {
-    -controller: AccountController
+    -inventory: InventoryController
     -account: Account
 
-    +RegisterAccountUI(controller: AccountController)
+    +RegisterAccountUI(inventory: InventoryController)
     +promptRegistrationForm(): void
     +validateFields(email: String, password: String, name: String, state: String, city: String): boolean
     +displayRegistrationSuccess(): void
@@ -103,10 +104,10 @@ package presentation {
   }
 
   ~class LoginUI {
-    -controller: AccountController
+    -inventory: InventoryController
     -account: Account
 
-    +LoginUI(controller: AccountController)
+    +LoginUI(inventory: InventoryController)
     +promptLoginForm(): void
     +validateCredentials(email: String, password: String): boolean
     +displayLoginSuccess(): void
@@ -120,55 +121,95 @@ package presentation {
   ~class ViewPetDetailsUI {
      -inventory: InventoryController
      -account: Account
+     -removePetUI: RemovePetUI
+     -updatePetUI: UpdatePetUI
+     -favoritesUI: FavoritesUI
+     -adoptionUI: AdoptionApplicationUI
 
-     +ViewPetDetailsUI(i: InventoryController, account: Account)
+     +ViewPetDetailsUI(i: InventoryController, account: Account, updatePetUI: UpdatePetUI, favoritesUI: FavoritesUI, adoptionUI: AdoptionApplicationUI)
 
      -displayPetProfile(microchipID: String): void
-     -getPetByID(microchipID: String): Pet
-     -displayEditableOptions(pet: Pet): void
-     -toggleFavorite(microchipID: String): void
-     -promptAdoptionForm(microchipID: String): void
+     -displayRemovePetOption(): void
+     -displayUpdatePetOption(): void
+     -displayFavoritePetOption(): void
+     -displayAdoptionForm(): void
   }
 
   ~class FavoritesUI {
      -inventory: InventoryController
+     -account: Account
 
-     +FavoritesUI(i: InventoryController)
+     +FavoritesUI(i: InventoryController, account: Account)
      +displaySavedPets(): void
   }
 
   ~class AdoptionApplicationUI {
     -inventory: InventoryController
+    -account: Account
 
-    +AdoptionApplicationUI(i: InventoryController)
+    +AdoptionApplicationUI(i: InventoryController, account: Account)
     +displayApplicationForm(microchipID: String): void
     +submitApplication(microchipID: String, application: AdoptionApplication): void
     +validateApplication(application: AdoptionApplication): boolean
     +displaySuccess(): void
     +displayValidationErrors(): void
   }
+
+  ~class ReviewApplicationsUI {
+    -account: Account
+
+    +ReviewApplicationsUI(i: InventoryController, account: Account)
+    +displayPendingApplications(shelterEmail: String): void
+    +displayApplicationDetails(applicationID: String): void
+    +approveApplication(applicationID: String): void
+    +rejectApplication(applicationID: String): void
+    +requestMoreInfo(applicationID: String): void
+    +notifyAdopter(applicationID: String): void
+  }
+
+  ~class ChatbotUI {
+    +ChatbotUI(): void
+    +openChatWindow(): void
+    +receiveUserMessage(): void
+    +generateResponse(message: String): String
+    +displayResponse(response: String): void
+    +endConversation(): void
+  }
+
+  ~class FeaturePetUI {
+    -inventory: InventoryController
+    -account: Account
+
+    +FeaturePetUI(i: InventoryController, account: Account)
+    +promptFeaturePetSelection(): void
+    +displayFeaturePet(): void
+  }
 }
 
 package domain {
   package pet {
       +class InventoryController {
-        -pets: List<Pet>
-        -loader: Loader
-        -saver: Saver
-        -favorites: Map<User, List<MicroChipID>>
-        -applications: List<AdoptionApplication>
+        -pets: Map<MicrochipID, Pet>
+        -favorites: Map<Adopter, List<Pet>>
+        -applications: Map<MicrochipID, AdoptionApplication>
+        -featuredPets: Map<Shelter, Pet>
+        -petRepo: PetRepository
+        -applicationRepo: ApplicationRepository
+        -accountRepo: AccountRepository
 
-        +InventoryController(l: Loader, s: Saver): void
+        +InventoryController(Map<MicrochipID, Pet>, Map<Adopter, List<Pet>>, Map<MicrochipID, AdoptionApplication>, Map<Shelter, Pet>, PetRepository, ApplicationRepository, AccountRepository): void
 
         -loadInventory(): void
 
-        +addPet(microchipID: String, name: String, species: PetType, breed: PetBreed, age: int, location: Location, photo: Image, shelter: String): <<throws>> IllegalArgumentException: void
-        +removePet(microChipID: MicroChipID): boolean
+        +addPet(microchipID: String, name: String, species: PetType, breed: PetBreed, age: int, location: Location, photo: Image, shelter: Shelter): <<throws>> IllegalArgumentException: void
+        +removePet(microChipID: MicrochipID): boolean
         +searchPet(searchCriteria: PetSearchCriteria): Set<Pet>
-        +getPetByID(microchipID: String): Pet
-        +toggleFavorite(user: User, microchipID: String): void
-        +getFavorites(user: User): List<Pet>
+        +toggleFavorite(adopter: Adopter, microchipID: String): void
+        +getFavorites(adopter: Adopter): List<Pet>
         +submitApplication(application: AdoptionApplication): void
+        +getApplicationsForShelter(shelterEmail: String): List<AdoptionApplication>
+        +setFeaturedPet(shelter: Shelter, petID: MicrochipID): boolean
+        +getFeaturedPet(shelter: Shelter): Pet
         +toString(): String
       }
 
@@ -200,9 +241,9 @@ package domain {
         -breed: PetBreed
         -age: int
         -location: Location
-        -shelter: String
+        -shelter: Shelter
 
-        +PetSearchCriteria(name: String, species: PetType, breed: PetBreed, age: int, location: Location, shelter: String)
+        +PetSearchCriteria(name: String, species: PetType, breed: PetBreed, age: int, location: Location, shelter: Shelter)
 
         ~checkMatchingPet(searchCriteria: PetSearchCriteria): boolean
         ~checkCompleteInfo(): boolean
@@ -220,13 +261,17 @@ package domain {
       }
 
       +class AdoptionApplication {
+        -applicationID: String
         -applicantEmail: String
         -microchipID: MicroChipID
         -householdInfo: String
         -petExperience: String
+        -status: String
 
         +AdoptionApplication(email: String, id: MicroChipID, householdInfo: String, petExperience: String)
         +validate(): boolean
+        +getStatus(): String
+        +setStatus(status: String): void
         +toString(): String
       }
 
@@ -274,12 +319,12 @@ package domain {
       +validatePassword(password: String): boolean
     }
 
-    +class User implements Account {
+    +class Adopter implements Account {
       -email: String
       -password: String
       -name: String
 
-      +User(email: String, password: String, name: String)
+      +Adopter(email: String, password: String, name: String)
       +getEmail(): String
       +validatePassword(password: String): boolean
       +toString(): String
@@ -289,38 +334,14 @@ package domain {
       -email: String
       -password: String
       -name: String
-      -location: String
+      -location: Location
+      -featuredPet: MicrochipID
 
-      +Shelter(email: String, password: String, name: String, location: String)
+      +Shelter(email: String, password: String, name: String, location: Location, featuredPet: MicrochipID)
       +getEmail(): String
+      +getFeaturedPet(id: MicrochipID): Pet
       +validatePassword(password: String): boolean
       +toString(): String
-    }
-
-    abstract class AccountController {
-      +register(email: String, password: String, name: String): void
-      +login(email: String, password: String): void
-      +logout(): void
-    }
-
-    +class ShelterController {
-      -shelters: List<Shelter>
-      -saver: Saver
-      +ShelterController(saver: Saver)
-
-      +registerShelter(email: String, password: String, name: String, location: Location): <<throws>> RegistrationException
-      +login(email: String, password: String): void <<throws>> LoginException
-      +logout(): void
-    }
-
-    +class UserController {
-      -users: List<User>
-      -saver: Saver
-      +UserController(saver: Saver)
-
-      +registerUser(email: String, password: String, name: String): <<throws>> RegistrationException
-      +login(email: String, password: String): void <<throws>> LoginException
-      +logout(): void
     }
 
     +class RegistrationException {
@@ -335,45 +356,79 @@ package domain {
       +getMessage(): String
     }
   }
+
+  package chatbot {
+    +class ChatbotService {
+      -faqData: Map<String, String>
+      -searchEngine: SearchEngine
+      -instructionEngine: InstructionEngine
+
+      +ChatbotService(): void
+      +generateResponse(userInput: String): String
+    }
+
+    +class SearchEngine {
+      +generatePetSearchSuggestions(query: String): String
+    }
+
+    +class InstructionEngine {
+      +generateInstructions(query: String): String
+    }
+  }
 }
 
 package datasource {
-  +interface Loader {
-    +<i>next(): String
-    +<i>hasNext(): boolean
+  package petdata {
+    +class PetRepository {
+        +getAllPets(): List<Pet>
+        +getPlantByID(id: String): Pet
+        +getPetByQueryData(queryData: String): Pet
+        +addPetData(pet: PetDTO): void
+        +removePetData(id: String): void
+    }
+
+    +class PetDTO {
+        +microchipID: String
+        +name: String
+        +species: String
+        +breed: String
+        +age: int
+        +location: String
+        +shelterEmail: String
+      }
   }
 
-  +interface Saver {
-    +<i>append(data: String): void
-    +<i>remove(data: String): boolean
-  }
+  package userdata {
+    +class AccountRepository {
+      +getAllAdopters(): List<UserDTO>
+      +getAllShelters(): List<UserDTO>
+      +getUserByEmail(email: String): UserDTO
+      +addUserData(user: UserDTO): void
+    }
 
-  +class LocalTextLoader {
-    -fPath: String
+    +class ApplicationRepository {
+      +addApplicationData(application: ApplicationDTO): void
+      +getAllApplications(): List<ApplicationDTO>
+      +getApplicationsByShelterEmail(email: String): List<ApplicationDTO>
+    }
 
-    +LocalTextLoader(fPath: String)
+    +class UserDTO {
+      +userType: String
+      +email: String
+      +password: String
+      +name: String
+      +location: String
+      +featuredPet: String
+    }
 
-    +next(): String
-    +hasNext(): boolean
-  }
-
-  +class DatabaseLoader {
-    -configFilePath: String
-    -table: String
-
-    +DatabaseLoader(configFilePath: String, table: String)
-
-    +next(): String
-    +hasNext(): boolean
-  }
-
-  +class LocalTextSaver {
-    -fPath: String
-
-    +LocalTextSaver(fPath: String)
-
-    +append(data: String): void
-    +remove(data: String): void
+    +class ApplicationDTO {
+      -applicationID: String
+      -applicantEmail: String
+      -microchipID: String
+      -householdInfo: String
+      -petExperience: String
+      -status: String
+    }
   }
 
   package image{
@@ -387,52 +442,73 @@ package datasource {
   }
 }
 
-Main ..> Saver
-Main ..> Loader
-Main ..> InventoryController
-Main ..> MainScreenUI
-Main ..> LocalTextLoader
-Main ..> LocalTextSaver
+   Main --> MainScreenUI
+   MainScreenUI --> AddPetUI
+   MainScreenUI --> RemovePetUI
+   MainScreenUI --> SearchPetUI
+   MainScreenUI --> UpdatePetUI
+   MainScreenUI --> RegisterAccountUI
+   MainScreenUI --> LoginUI
+   MainScreenUI --> ViewPetDetailsUI
+   MainScreenUI --> FavoritesUI
+   MainScreenUI --> AdoptionApplicationUI
+   MainScreenUI --> ReviewApplicationsUI
+   MainScreenUI --> ChatbotUI
+   MainScreenUI --> FeaturePetUI
 
-MainScreenUI --> AddPetUI
-MainScreenUI --> RemovePetUI
-MainScreenUI --> SearchGuitarUI
-MainScreenUI --> UpdateGuitarUI
-MainScreenUI --> ReportUI
-MainScreenUI --> InventoryController
-MainScreenUI ..> FileGenerator
-MainScreenUI ..> LocalTextLoader
+   AddPetUI --> InventoryController
+   RemovePetUI --> InventoryController
+   SearchPetUI --> InventoryController
+   UpdatePetUI --> InventoryController
+   RegisterAccountUI --> InventoryController
+   LoginUI --> InventoryController
+   ViewPetDetailsUI --> InventoryController
+   FavoritesUI --> InventoryController
+   AdoptionApplicationUI --> InventoryController
+   ReviewApplicationsUI --> InventoryController
+   FeaturePetUI --> InventoryController
 
-AddPetUI --> InventoryController
-AddPetUI ..> PetType
+   AddPetUI --> Account
+   RemovePetUI --> Account
+   SearchPetUI --> Account
+   UpdatePetUI --> Account
+   RegisterAccountUI --> Account
+   LoginUI --> Account
+   ViewPetDetailsUI --> Account
+   FavoritesUI --> Account
+   AdoptionApplicationUI --> Account
+   ReviewApplicationsUI --> Account
+   FeaturePetUI --> Account
 
-RemovePetUI --> InventoryController
+   SearchPetUI ..> PetType
+   InventoryController ..> PetType
+   PetSearchCriteria --> PetType
+   SearchPetUI ..> PetBreed
+   InventoryController ..> PetBreed
+   PetSearchCriteria --> PetBreed
 
-InventoryController --> "*" Guitar
-InventoryController --> Loader
-InventoryController --> Saver
-InventoryController ..> GuitarSearchCriteria
-InventoryController ..> SerialNumber
-InventoryController ..> Price
+   InventoryController --> PetRepository
+   InventoryController --> ApplicationRepository
+   InventoryController --> AccountRepository
+   InventoryController --> Pet
+   InventoryController --> MicrochipID
+   InventoryController --> PetSearchCriteria
+   InventoryController --> AdoptionApplication
+   InventoryController --> Location
 
-RegisterAccountUI --> ShelterController
-RegisterAccountUI --> RegistrationException
+   Shelter --> Location
+   Adopter ..|> Account
+   Shelter ..|> Account
+   RegisterAccountUI --> RegistrationException
+   LoginUI --> LoginException
 
-ShelterController ..> RegistrationException
-UserController ..> RegistrationException
+   ChatbotService --> SearchEngine
+   ChatbotService --> InstructionEngine
 
-AccountController <|-- UserController
-AccountController <|-- ShelterController
+   PetRepository --> PetDTO
+   AccountRepository --> UserDTO
+   ApplicationRepository --> ApplicationDTO
 
-LocalTextLoader .u.|> Loader
-DatabaseLoader .u.|> Loader
-LocalTextSaver .u.|> Saver
-
-MainScreenUI --> LoginUI
-LoginUI --> ShelterController
-LoginUI --> LoginException
-ShelterController ..> LoginException
-
-ReportGenerator .u.|> FileGenerator
+   LocalLibraryImageRetriever ..|> ImageRetriever
 
 @enduml
